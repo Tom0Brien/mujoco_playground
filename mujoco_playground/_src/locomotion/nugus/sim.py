@@ -50,8 +50,6 @@ def main():
     data.qpos[:3] = [0, 0, 0.473774]
     data.qpos[3:7] = [0.994428, 0.00107808, 0.104931, -0.0100319]
 
-    print(data.qpos)
-
     # Simulation parameters
     duration = 5.0  # seconds
 
@@ -79,8 +77,6 @@ def main():
             # Step the simulation
             mujoco.mj_step(model, data)
             viewer.sync()
-            # Pause indefinitely
-            time.sleep(1000)
 
             # Wait until real time catches up with simulation time
             time_until_next_step = model.opt.timestep - (time.time() - step_start)

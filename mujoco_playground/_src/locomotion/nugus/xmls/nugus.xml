@@ -1,7 +1,7 @@
 <mujoco model="nugus">
 <compiler angle="radian" meshdir=""/>
   
-  <option iterations="1" ls_iterations="5" timestep=".004">
+  <option iterations="3" ls_iterations="5" timestep=".002">
     <flag eulerdamp="disable"/>
   </option>
 
@@ -33,13 +33,13 @@
 
   <default>
     <joint damping="1.084" armature="0.045" frictionloss="0.03"/>
-    <position kp="21.1" ctrlrange="-3.141592 3.141592" forcerange="-100 100"/>
+    <position kp="40.1" ctrlrange="-3.141592 3.141592" forcerange="-100 100"/>
     <geom contype="0" conaffinity="0" condim="1" solref="0.005 1"/>
     <site group="5" type="sphere"/>
     <default class="collision">
       <geom group="3"/>
       <default class="foot">
-        <geom mass="0" type="box" friction="0.8 0.02 0.01" contype="1" conaffinity="1"/>
+        <geom mass="0" type="box" contype="0" conaffinity="1" friction="1.0"/>
       </default>
     </default>
     <default class="visual">
