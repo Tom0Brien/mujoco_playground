@@ -77,7 +77,7 @@ _envs = {
     "H1InplaceGaitTracking": h1_inplace_gait_tracking.InplaceGaitTracking,
     "H1JoystickGaitTracking": h1_joystick_gait_tracking.JoystickGaitTracking,
     "Op3Joystick": op3_joystick.Joystick,
-    "NugusJoystick": nugus_joystick.Joystick,
+    "NugusJoystick": functools.partial(nugus_joystick.Joystick, task="flat_terrain"),
     "SpotFlatTerrainJoystick": functools.partial(
         spot_joystick.Joystick, task="flat_terrain"
     ),

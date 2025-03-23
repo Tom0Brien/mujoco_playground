@@ -14,22 +14,35 @@
 # ==============================================================================
 """Constants for Nugus."""
 
+from etils import epath
+
 from mujoco_playground._src import mjx_env
 
 ROOT_PATH = mjx_env.ROOT_PATH / "locomotion" / "nugus"
-FEET_ONLY_XML = ROOT_PATH / "xmls" / "scene.xml"
+FLAT_TERRAIN_XML = ROOT_PATH / "xmls" / "scene_mjx_flat_terrain.xml"
+ROUGH_TERRAIN_XML = ROOT_PATH / "xmls" / "scene_mjx_rough_terrain.xml"
+
+
+def task_to_xml(task_name: str) -> epath.Path:
+    return {
+        "flat_terrain": FLAT_TERRAIN_XML,
+        "rough_terrain": ROUGH_TERRAIN_XML,
+    }[task_name]
+
 
 FEET_SITES = [
     "left_foot",
     "right_foot",
 ]
 
-LEFT_FEET_GEOMS = [
-    "l_foot1",
+HAND_SITES = [
+    "left_hand",
+    "right_hand",
 ]
-RIGHT_FEET_GEOMS = [
-    "r_foot1",
-]
+
+LEFT_FEET_GEOMS = ["l_foot1"]
+RIGHT_FEET_GEOMS = ["r_foot1"]
+FEET_GEOMS = LEFT_FEET_GEOMS + RIGHT_FEET_GEOMS
 
 ROOT_BODY = "torso"
 
