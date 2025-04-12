@@ -50,20 +50,8 @@ def main():
     data.qpos[:3] = [0, 0, 0.473774]
     data.qpos[3:7] = [0.994428, 0.00107808, 0.104931, -0.0100319]
 
-    # Set control signal dynamically
-    for joint_name, position in joint_positions.items():
-        joint_id = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_ACTUATOR, joint_name
-        )
-        print(joint_id, model.nu)
-        if joint_id != -1 and joint_id < model.nu:
-            # Get the qpos index for this joint
-            qpos_addr = model.jnt_qposadr[joint_id]
-            # Set the position
-            data.ctrl[joint_id] = position
-
     # Simulation parameters
-    duration = 1000.0  # seconds
+    duration = 5.0  # seconds
 
     # Launch the viewer
     with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -73,6 +61,19 @@ def main():
 
         while viewer.is_running() and data.time < duration:
             step_start = time.time()
+
+            # Set control signal dynamically
+            for joint_name, position in joint_positions.items():
+                joint_id = mujoco.mj_name2id(
+                    model, mujoco.mjtObj.mjOBJ_ACTUATOR, joint_name
+                )
+                print(joint_id, model.nu)
+                if joint_id != -1 and joint_id < model.nu:
+                    # Get the qpos index for this joint
+                    qpos_addr = model.jnt_qposadr[joint_id]
+                    # Set the position
+                    data.ctrl[joint_id] = position
+
             # Step the simulation
             mujoco.mj_step(model, data)
             viewer.sync()

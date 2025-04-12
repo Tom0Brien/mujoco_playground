@@ -47,12 +47,12 @@ class NugusEnv(mjx_env.MjxEnv):
         self._mj_model = mujoco.MjModel.from_xml_string(
             epath.Path(xml_path).read_text(), assets=get_assets()
         )
-        self._mj_model.opt.timestep = self.sim_dt
+        self._mj_model.opt.timestep = config.sim_dt
 
         # Modify PD gains.
-        # self._mj_model.dof_damping[6:] = config.Kd
-        # self._mj_model.actuator_gainprm[:, 0] = config.Kp
-        # self._mj_model.actuator_biasprm[:, 1] = -config.Kp
+        self._mj_model.dof_damping[6:] = config.Kd
+        self._mj_model.actuator_gainprm[:, 0] = config.Kp
+        self._mj_model.actuator_biasprm[:, 1] = -config.Kp
 
         # Increase offscreen framebuffer size to render at higher resolutions.
         # TODO(kevin): Consider moving this somewhere else.
@@ -66,35 +66,27 @@ class NugusEnv(mjx_env.MjxEnv):
 
     def get_gravity(self, data: mjx.Data) -> jax.Array:
         """Return the gravity vector in the world frame."""
-        return mjx_env.get_sensor_data(self.mj_model, data, f"{consts.GRAVITY_SENSOR}")
+        return mjx_env.get_sensor_data(self.mj_model, data, consts.GRAVITY_SENSOR)
 
     def get_global_linvel(self, data: mjx.Data) -> jax.Array:
         """Return the linear velocity of the robot in the world frame."""
-        return mjx_env.get_sensor_data(
-            self.mj_model, data, f"{consts.GLOBAL_LINVEL_SENSOR}"
-        )
+        return mjx_env.get_sensor_data(self.mj_model, data, consts.GLOBAL_LINVEL_SENSOR)
 
     def get_global_angvel(self, data: mjx.Data) -> jax.Array:
         """Return the angular velocity of the robot in the world frame."""
-        return mjx_env.get_sensor_data(
-            self.mj_model, data, f"{consts.GLOBAL_ANGVEL_SENSOR}"
-        )
+        return mjx_env.get_sensor_data(self.mj_model, data, consts.GLOBAL_ANGVEL_SENSOR)
 
     def get_local_linvel(self, data: mjx.Data) -> jax.Array:
         """Return the linear velocity of the robot in the local frame."""
-        return mjx_env.get_sensor_data(
-            self.mj_model, data, f"{consts.LOCAL_LINVEL_SENSOR}"
-        )
+        return mjx_env.get_sensor_data(self.mj_model, data, consts.LOCAL_LINVEL_SENSOR)
 
     def get_accelerometer(self, data: mjx.Data) -> jax.Array:
         """Return the accelerometer readings in the local frame."""
-        return mjx_env.get_sensor_data(
-            self.mj_model, data, f"{consts.ACCELEROMETER_SENSOR}"
-        )
+        return mjx_env.get_sensor_data(self.mj_model, data, consts.ACCELEROMETER_SENSOR)
 
     def get_gyro(self, data: mjx.Data) -> jax.Array:
         """Return the gyroscope readings in the local frame."""
-        return mjx_env.get_sensor_data(self.mj_model, data, f"{consts.GYRO_SENSOR}")
+        return mjx_env.get_sensor_data(self.mj_model, data, consts.GYRO_SENSOR)
 
     # Accessors.
 
