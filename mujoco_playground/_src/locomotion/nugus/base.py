@@ -50,9 +50,9 @@ class NugusEnv(mjx_env.MjxEnv):
         self._mj_model.opt.timestep = config.sim_dt
 
         # Modify PD gains.
-        self._mj_model.dof_damping[6:] = config.Kd
-        self._mj_model.actuator_gainprm[:, 0] = config.Kp
-        self._mj_model.actuator_biasprm[:, 1] = -config.Kp
+        # self._mj_model.dof_damping[6:] = config.Kd
+        # self._mj_model.actuator_gainprm[:, 0] = config.Kp
+        # self._mj_model.actuator_biasprm[:, 1] = -config.Kp
 
         # Increase offscreen framebuffer size to render at higher resolutions.
         # TODO(kevin): Consider moving this somewhere else.
