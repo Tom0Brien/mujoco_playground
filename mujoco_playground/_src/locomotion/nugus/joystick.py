@@ -26,6 +26,7 @@ from mujoco_playground._src import collision
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.locomotion.nugus import base as nugus_base
 from mujoco_playground._src.locomotion.nugus import nugus_constants as consts
+from mujoco_playground._src import gait
 
 
 def default_config() -> config_dict.ConfigDict:
@@ -58,8 +59,13 @@ def default_config() -> config_dict.ConfigDict:
                 feet_slip=-0.1,
                 feet_clearance=0.0,
                 energy=-0.0001,
+                feet_air_time=2.0,
+                feet_height=0.0,
+                feet_phase=1.0,
+                feet_distance=-1.0,
             ),
             tracking_sigma=0.25,
+            max_foot_height=0.07,
         ),
         velocity_kick=[1.0, 5.0],
         kick_durations=[0.05, 0.2],
@@ -114,13 +120,18 @@ class Joystick(nugus_base.NugusEnv):
         self._foot_linvel_sensor_adr = jp.array(foot_linvel_sensor_adr)
 
     def reset(self, rng: jax.Array) -> mjx_env.State:
-        rng, cmd_rng, noise_rng, pert1_rng, pert2_rng, pert3_rng = jax.random.split(
-            rng, 6
+        rng, cmd_rng, noise_rng, pert1_rng, pert2_rng, pert3_rng, phase_rng = (
+            jax.random.split(rng, 7)
         )
 
         data = mjx_env.init(
             self.mjx_model, qpos=self._init_q, qvel=jp.zeros(self.mjx_model.nv)
         )
+
+        # For feet_air_time and feet_phase rewards
+        gait_freq = jax.random.uniform(phase_rng, (1,), minval=1.25, maxval=1.75)
+        phase_dt = 2 * jp.pi * self.dt * gait_freq
+        phase = jp.array([0, jp.pi])
 
         time_until_next_pert = jax.random.uniform(
             pert1_rng,
@@ -157,6 +168,13 @@ class Joystick(nugus_base.NugusEnv):
             "direction": jp.zeros(3),
             "vel_kick": vel_kick,
             "motor_targets": jp.zeros(self.mjx_model.nu),
+            # Add variables for feet-related rewards
+            "feet_air_time": jp.zeros(2),
+            "last_contact": jp.zeros(2, dtype=bool),
+            "swing_peak": jp.zeros(2),
+            # Phase related
+            "phase_dt": phase_dt,
+            "phase": phase,
         }
 
         metrics = {}
@@ -177,10 +195,37 @@ class Joystick(nugus_base.NugusEnv):
         motor_targets = jp.clip(motor_targets, self._lowers, self._uppers)
         data = mjx_env.step(self.mjx_model, state.data, motor_targets, self.n_substeps)
 
+        # Get feet contact information
+        left_feet_contact = jp.array(
+            [
+                collision.geoms_colliding(data, geom_id, self._floor_geom_id)
+                for geom_id in self._left_feet_geom_id
+            ]
+        )
+        right_feet_contact = jp.array(
+            [
+                collision.geoms_colliding(data, geom_id, self._floor_geom_id)
+                for geom_id in self._right_feet_geom_id
+            ]
+        )
+        contact = jp.hstack([jp.any(left_feet_contact), jp.any(right_feet_contact)])
+        contact_filt = contact | state.info["last_contact"]
+        first_contact = (state.info["feet_air_time"] > 0.0) * contact_filt
+
+        # Update feet air time
+        state.info["feet_air_time"] += self.dt
+
+        # Track swing peak height
+        p_f = data.site_xpos[self._feet_site_id]
+        p_fz = p_f[..., -1]
+        state.info["swing_peak"] = jp.maximum(state.info["swing_peak"], p_fz)
+
         obs = self._get_obs(data, state.info, state.obs, noise_rng)
         done = self._get_termination(data)
 
-        rewards = self._get_reward(data, action, state.info, state.metrics, done)
+        rewards = self._get_reward(
+            data, action, state.info, state.metrics, done, first_contact, contact
+        )
         rewards = {
             k: v * self._config.reward_config.scales[k] for k, v in rewards.items()
         }
@@ -203,6 +248,20 @@ class Joystick(nugus_base.NugusEnv):
             0,
             state.info["step"],
         )
+
+        # Update phase
+        phase_tp1 = state.info["phase"] + state.info["phase_dt"]
+        state.info["phase"] = jp.fmod(phase_tp1 + jp.pi, 2 * jp.pi) - jp.pi
+        state.info["phase"] = jp.where(
+            jp.linalg.norm(state.info["command"]) > 0.01,
+            state.info["phase"],
+            jp.ones(2) * jp.pi,
+        )
+
+        # Update feet tracking variables
+        state.info["feet_air_time"] *= ~contact
+        state.info["last_contact"] = contact
+        state.info["swing_peak"] *= ~contact
 
         for k, v in rewards.items():
             state.metrics[f"reward/{k}"] = v
@@ -260,9 +319,11 @@ class Joystick(nugus_base.NugusEnv):
         info: dict[str, Any],
         metrics: dict[str, Any],
         done: jax.Array,
+        first_contact: jax.Array = None,
+        contact: jax.Array = None,
     ) -> dict[str, jax.Array]:
         del metrics  # Unused.
-        return {
+        rewards = {
             # Tracking rewards.
             "tracking_lin_vel": self._reward_tracking_lin_vel(
                 info["command"], self.get_local_linvel(data)
@@ -289,6 +350,28 @@ class Joystick(nugus_base.NugusEnv):
             "feet_clearance": self._cost_feet_clearance(data),
             "energy": self._cost_energy(data.qvel[6:], data.actuator_force),
         }
+
+        # Add T1 feet-related rewards if contact info is provided
+        if first_contact is not None and contact is not None:
+            rewards.update(
+                {
+                    "feet_air_time": self._reward_feet_air_time(
+                        info["feet_air_time"], first_contact, info["command"]
+                    ),
+                    "feet_height": self._cost_feet_height(
+                        info["swing_peak"], first_contact, info
+                    ),
+                    "feet_phase": self._reward_feet_phase(
+                        data,
+                        info["phase"],
+                        self._config.reward_config.max_foot_height,
+                        info["command"],
+                    ),
+                    "feet_distance": self._cost_feet_distance(data, info),
+                }
+            )
+
+        return rewards
 
     def _reward_tracking_lin_vel(
         self,
@@ -449,19 +532,81 @@ class Joystick(nugus_base.NugusEnv):
 
     def sample_command(self, rng: jax.Array) -> jax.Array:
         """Samples a random command with a 10% chance of being zero."""
-        _, rng1, rng2, rng3, rng4 = jax.random.split(rng, 5)
+        # _, rng1, rng2, rng3, rng4 = jax.random.split(rng, 5)
 
-        lin_vel_x = jax.random.uniform(
-            rng1, minval=self._config.lin_vel_x[0], maxval=self._config.lin_vel_x[1]
-        )
-        lin_vel_y = jax.random.uniform(
-            rng2, minval=self._config.lin_vel_y[0], maxval=self._config.lin_vel_y[1]
-        )
-        ang_vel_yaw = jax.random.uniform(
-            rng3,
-            minval=self._config.ang_vel_yaw[0],
-            maxval=self._config.ang_vel_yaw[1],
+        # lin_vel_x = jax.random.uniform(
+        #     rng1, minval=self._config.lin_vel_x[0], maxval=self._config.lin_vel_x[1]
+        # )
+        # lin_vel_y = jax.random.uniform(
+        #     rng2, minval=self._config.lin_vel_y[0], maxval=self._config.lin_vel_y[1]
+        # )
+        # ang_vel_yaw = jax.random.uniform(
+        #     rng3,
+        #     minval=self._config.ang_vel_yaw[0],
+        #     maxval=self._config.ang_vel_yaw[1],
+        # )
+
+        # cmd = jp.hstack([lin_vel_x, lin_vel_y, ang_vel_yaw])
+        # return jp.where(jax.random.bernoulli(rng4, 0.1), jp.zeros(3), cmd)
+        return jp.array([0.5, 0.0, 0.0])
+
+    def _cost_feet_height(
+        self,
+        swing_peak: jax.Array,
+        first_contact: jax.Array,
+        info: dict[str, Any],
+    ) -> jax.Array:
+        """Penalize feet not reaching target height during swing."""
+        del info  # Unused.
+        error = swing_peak / self._config.reward_config.max_foot_height - 1.0
+        return jp.sum(jp.square(error) * first_contact)
+
+    def _reward_feet_air_time(
+        self,
+        air_time: jax.Array,
+        first_contact: jax.Array,
+        commands: jax.Array,
+        threshold_min: float = 0.2,
+        threshold_max: float = 0.5,
+    ) -> jax.Array:
+        """Reward feet being in the air for an appropriate amount of time."""
+        cmd_norm = jp.linalg.norm(commands)
+        air_time = (air_time - threshold_min) * first_contact
+        air_time = jp.clip(air_time, max=threshold_max - threshold_min)
+        reward = jp.sum(air_time)
+        reward *= cmd_norm > 0.1  # No reward for zero commands.
+        return reward
+
+    def _reward_feet_phase(
+        self,
+        data: mjx.Data,
+        phase: jax.Array,
+        foot_height: jax.Array,
+        commands: jax.Array,
+    ) -> jax.Array:
+        """Reward for tracking the desired foot height based on phase."""
+        foot_pos = data.site_xpos[self._feet_site_id]
+        foot_z = foot_pos[..., -1]
+        rz = gait.get_rz(phase, swing_height=foot_height)
+        error = jp.sum(jp.square(foot_z - rz))
+        reward = jp.exp(-error / 0.01)
+        return reward
+
+    def _cost_feet_distance(self, data: mjx.Data, info: dict[str, Any]) -> jax.Array:
+        """Penalize feet being too close together."""
+        del info  # Unused.
+        left_foot_pos = data.site_xpos[self._feet_site_id[0]]
+        right_foot_pos = data.site_xpos[self._feet_site_id[1]]
+
+        # Get the base orientation to measure distance in the robot's frame
+        base_xmat = data.site_xmat[self._mj_model.site("imu").id]
+        base_yaw = jp.arctan2(base_xmat[1, 0], base_xmat[0, 0])
+
+        # Calculate the lateral distance between feet in the robot's frame
+        feet_distance = jp.abs(
+            jp.cos(base_yaw) * (left_foot_pos[1] - right_foot_pos[1])
+            - jp.sin(base_yaw) * (left_foot_pos[0] - right_foot_pos[0])
         )
 
-        cmd = jp.hstack([lin_vel_x, lin_vel_y, ang_vel_yaw])
-        return jp.where(jax.random.bernoulli(rng4, 0.1), jp.zeros(3), cmd)
+        # Penalize if feet are too close
+        return jp.clip(0.2 - feet_distance, min=0.0, max=0.1)
