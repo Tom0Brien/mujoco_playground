@@ -63,6 +63,7 @@ def default_config() -> config_dict.ConfigDict:
                 feet_height=0.0,
                 feet_phase=-0.25,
                 feet_distance=-1.0,
+                pose=-0.25,
             ),
             tracking_sigma=0.25,
             max_foot_height=0.07,
@@ -93,6 +94,9 @@ class Joystick(nugus_base.NugusEnv):
         self._default_pose = self._mj_model.keyframe("stand_bent_knees").qpos[7:]
         self._lowers = self._mj_model.actuator_ctrlrange[:, 0]
         self._uppers = self._mj_model.actuator_ctrlrange[:, 1]
+
+        # Add weights for pose cost
+        self._weights = jp.ones(self._mj_model.nu)  # Equal weights for all joints
 
         self._torso_body_id = self._mj_model.body(consts.ROOT_BODY).id
         self._torso_mass = self._mj_model.body_subtreemass[self._torso_body_id]
@@ -349,6 +353,7 @@ class Joystick(nugus_base.NugusEnv):
             "feet_slip": self._cost_feet_slip(data),
             "feet_clearance": self._cost_feet_clearance(data),
             "energy": self._cost_energy(data.qvel[6:], data.actuator_force),
+            "pose": self._cost_pose(data.qpos[7:]),
         }
 
         # Add T1 feet-related rewards if contact info is provided
@@ -610,3 +615,7 @@ class Joystick(nugus_base.NugusEnv):
 
         # Penalize if feet are too close
         return jp.clip(0.2 - feet_distance, min=0.0, max=0.1)
+
+    def _cost_pose(self, qpos: jax.Array) -> jax.Array:
+        """Penalize deviation from the default pose."""
+        return jp.sum(jp.square(qpos - self._default_pose) * self._weights)
