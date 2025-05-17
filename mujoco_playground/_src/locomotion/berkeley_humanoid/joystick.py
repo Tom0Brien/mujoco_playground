@@ -55,15 +55,15 @@ def default_config() -> config_dict.ConfigDict:
       reward_config=config_dict.create(
           scales=config_dict.create(
               # Tracking related rewards.
-              tracking_lin_vel=1.0,
-              tracking_ang_vel=0.5,
+              tracking_lin_vel=1.5,
+              tracking_ang_vel=0.8,
               # Base related rewards.
-              lin_vel_z=0.0,
-              ang_vel_xy=-0.15,
-              orientation=-1.0,
+              lin_vel_z=-2.0,
+              ang_vel_xy=-0.05,
+              orientation=-5.0,
               base_height=0.0,
               # Energy related rewards.
-              torques=-2.5e-5,
+              torques=-0.0002,
               action_rate=-0.01,
               energy=0.0,
               # Feet related rewards.
@@ -80,7 +80,7 @@ def default_config() -> config_dict.ConfigDict:
               joint_deviation_knee=-0.1,
               joint_deviation_hip=-0.25,
               dof_pos_limits=-1.0,
-              pose=-1.0,
+              pose=-0.2,
           ),
           tracking_sigma=0.5,
           max_foot_height=0.1,

@@ -5,6 +5,11 @@
     <flag eulerdamp="disable"/>
   </option>
 
+  <custom>
+    <numeric data="8" name="max_contact_points"/>
+    <numeric data="8" name="max_geom_pairs"/>
+  </custom>
+
   <asset>
     <mesh name="torso_visual" file="torso_visual.stl"/>
     <mesh name="left_hip_yaw_visual" file="left_hip_yaw_visual.stl"/>
@@ -39,7 +44,7 @@
     <default class="collision">
       <geom group="3"/>
       <default class="foot">
-        <geom mass="0" type="box" contype="0" conaffinity="1" friction="1.0"/>
+        <geom mass="0" type="sphere" contype="0" conaffinity="1" friction="1.0" size="0.02" group="1" rgba="1 0 0 1"/>
       </default>
     </default>
     <default class="visual">
@@ -141,9 +146,12 @@
                 <body name="left_foot" pos="0 0 0" quat="0.707105 0.707108 0 0">
                   <inertial pos="0.0248226 0.00798542 0.033284" quat="0.99979 -0.0089131 -9.26048e-05 -0.0184639" mass="0.245581" diaginertia="0.00134758 0.00108371 0.00033179"/>
                   <joint name="left_ankle_roll" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14159 3.14159"/>
-                  <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.286275 0.286275 0.286275 1" mesh="left_foot_visual"/>\
-                  <geom name="l_foot1" class="foot" pos="0.02 0.01 0.02" size="0.02 0.06 0.105"/>
-                  <site name="left_foot" rgba="1 0 0 1" pos="0.02 0 0"/>
+                  <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.286275 0.286275 0.286275 1" mesh="left_foot_visual"/>
+                  <geom name="l_foot1" class="foot" pos="0.0379995 -0.0548465 -0.0867505"/>
+                  <geom name="l_foot2" class="foot" pos="0.0379995 0.0767345 -0.0867505"/>
+                  <geom name="l_foot3" class="foot" pos="0.0379995 0.0767345 0.129071"/>
+                  <geom name="l_foot4" class="foot" pos="0.0379995 -0.0548465 0.129071"/>
+                  <site name="left_foot" rgba="1 0 0 1" pos="0.035 0 0" euler="0 -1.571 0" size="0.01" group="1"/>
                 </body>
               </body>
             </body>
@@ -181,8 +189,11 @@
                   <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.286275 0.286275 0.286275 1" mesh="right_foot_visual"/>
                   <geom size="0.0284933 0.0657897 0.107911" pos="0.00950672 -0.0109447 0.0211599" type="box" rgba="0.286275 0.286275 0.286275 0"/>
                   <geom pos="0.038 0 0" quat="0.707105 0 -0.707108 0" type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.615686 0.811765 0.929412 1" mesh="right_foot_base_visual"/>
-                  <geom name="r_foot1" class="foot" pos="0.02 -0.01 0.02" size="0.02 0.06 0.105"/>
-                  <site name="right_foot" rgba="1 0 0 1" pos="0.02 0 0"/>
+                  <geom name="r_foot1" class="foot" pos="0.0379995 -0.0767345 -0.0867505"/>
+                  <geom name="r_foot2" class="foot" pos="0.0379995 0.0548465  -0.0867505"/>
+                  <geom name="r_foot3" class="foot" pos="0.0379995 0.0548465 0.129071"/>
+                  <geom name="r_foot4" class="foot" pos="0.0379995  -0.0767345 0.129071"/>
+                  <site name="right_foot" rgba="1 0 0 1" pos="0.035 0 0" euler="0 -1.571 0" size="0.01" group="1"/>
                 </body>
               </body>
             </body>
@@ -260,6 +271,11 @@
         6.45000e-05  1.71000e+00  1.97000e-01 -7.13000e-01  1.71000e+00
       -1.97000e-01 -7.18000e-01
       "
+      ctrl="3.39000e-02  1.63000e-01 -9.04000e-01
+        1.20000e+00 -5.10000e-01 -1.66000e-01 -3.29000e-02 -1.62000e-01
+      -9.04000e-01  1.20000e+00 -5.08000e-01  1.67000e-01 -2.22000e-08
+        6.45000e-05  1.71000e+00  1.97000e-01 -7.13000e-01  1.71000e+00
+      -1.97000e-01 -7.18000e-01"
     />
   </keyframe>
 </mujoco>

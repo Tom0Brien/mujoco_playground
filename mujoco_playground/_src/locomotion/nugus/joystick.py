@@ -34,39 +34,48 @@ def default_config() -> config_dict.ConfigDict:
         ctrl_dt=0.02,
         sim_dt=0.002,
         episode_length=1000,
-        Kp=21.1,
-        Kd=1.084,
         early_termination=True,
         action_repeat=1,
         action_scale=1,
         obs_noise=0.05,
         obs_history_size=1,
-        max_foot_height=0.07,
+        max_foot_height=0.1,
         lin_vel_x=[-0.8, 0.8],
         lin_vel_y=[-0.8, 0.8],
         ang_vel_yaw=[-0.6, 0.6],
         reward_config=config_dict.create(
             scales=config_dict.create(
-                tracking_lin_vel=1.5,
-                tracking_ang_vel=0.8,
-                lin_vel_z=-2.0,
-                ang_vel_xy=-0.05,
-                orientation=-5.0,
-                torques=-0.0002,
-                action_rate=-0.01,
-                zero_cmd=-0.5,
-                termination=-1.0,
-                feet_slip=-0.25,
-                feet_clearance=0.0,
-                energy=0.0,
-                feet_air_time=2.0,
-                feet_height=0.0,
-                feet_phase=-0.25,
-                feet_distance=-1.0,
-                pose=-0.25,
+              tracking_lin_vel=1.5,
+              tracking_ang_vel=0.8,
+              # Base related rewards.
+              lin_vel_z=-2.0,
+              ang_vel_xy=-0.05,
+              orientation=-5.0,
+              base_height=0.0,
+              # Energy related rewards.
+              torques=-0.0002,
+              action_rate=-0.01,
+              energy=0.0,
+              # Feet related rewards.
+              feet_clearance=-2.0,
+              feet_air_time=2.0,
+              feet_slip=-0.25,
+              feet_height=-0.1,
+              feet_phase=0.25,
+              feet_distance=-1.0,
+              # Other rewards.
+              stand_still=0.0,
+              alive=0.0,
+              termination=-1.0,
+              # Pose related rewards.
+              joint_deviation_knee=-0.0,
+              joint_deviation_hip=-0.0,
+              dof_pos_limits=-0.0,
+              pose=-0.05,
+              zero_cmd=-0.5,
             ),
             tracking_sigma=0.25,
-            max_foot_height=0.07,
+            max_foot_height=0.1,
         ),
         velocity_kick=[1.0, 5.0],
         kick_durations=[0.05, 0.2],
@@ -97,6 +106,21 @@ class Joystick(nugus_base.NugusEnv):
 
         # Add weights for pose cost
         self._weights = jp.ones(self._mj_model.nu)  # Equal weights for all joints
+
+        # Get hip and knee joint indices
+        hip_indices = []
+        hip_joint_names = ["hip_yaw", "hip_roll", "hip_pitch"]
+        for side in ["left", "right"]:
+            for joint_name in hip_joint_names:
+                hip_indices.append(
+                    self._mj_model.joint(f"{side}_{joint_name}").qposadr - 7
+                )
+        self._hip_indices = jp.array(hip_indices)
+
+        knee_indices = []
+        for side in ["left", "right"]:
+            knee_indices.append(self._mj_model.joint(f"{side}_knee_pitch").qposadr - 7)
+        self._knee_indices = jp.array(knee_indices)
 
         self._torso_body_id = self._mj_model.body(consts.ROOT_BODY).id
         self._torso_mass = self._mj_model.body_subtreemass[self._torso_body_id]
@@ -354,6 +378,8 @@ class Joystick(nugus_base.NugusEnv):
             "feet_clearance": self._cost_feet_clearance(data),
             "energy": self._cost_energy(data.qvel[6:], data.actuator_force),
             "pose": self._cost_pose(data.qpos[7:]),
+            "joint_deviation_knee": self._cost_joint_deviation_knee(data.qpos[7:]),
+            "joint_deviation_hip": self._cost_joint_deviation_hip(data.qpos[7:], info["command"]),
         }
 
         # Add T1 feet-related rewards if contact info is provided
@@ -448,10 +474,12 @@ class Joystick(nugus_base.NugusEnv):
         return done & (step < 500)
 
     def _cost_feet_slip(self, data: mjx.Data) -> jax.Array:
+        """Penalize feet slipping when in contact with the ground."""
         feet_vel = data.sensordata[self._foot_linvel_sensor_adr]
         vel_xy = feet_vel[..., :2]
         vel_xy_norm_sq = jp.sum(jp.square(vel_xy), axis=-1)
 
+        # Get contact information for both feet
         left_feet_contact = jp.array(
             [
                 collision.geoms_colliding(data, geom_id, self._floor_geom_id)
@@ -467,6 +495,8 @@ class Joystick(nugus_base.NugusEnv):
         feet_contact = jp.hstack(
             [jp.any(left_feet_contact), jp.any(right_feet_contact)]
         )
+
+        # Penalize horizontal velocity when feet are in contact
         return jp.sum(vel_xy_norm_sq * feet_contact)
 
     def _cost_feet_clearance(self, data: mjx.Data) -> jax.Array:
@@ -614,8 +644,27 @@ class Joystick(nugus_base.NugusEnv):
         )
 
         # Penalize if feet are too close
-        return jp.clip(0.2 - feet_distance, min=0.0, max=0.1)
+        return jp.clip(0.1 - feet_distance, min=0.0, max=0.1)
 
     def _cost_pose(self, qpos: jax.Array) -> jax.Array:
         """Penalize deviation from the default pose."""
         return jp.sum(jp.square(qpos - self._default_pose) * self._weights)
+
+    def _cost_joint_deviation_hip(
+        self, qpos: jax.Array, cmd: jax.Array
+    ) -> jax.Array:
+        """Penalize hip joint deviation from default pose."""
+        cost = jp.sum(
+            jp.abs(qpos[self._hip_indices] - self._default_pose[self._hip_indices])
+        )
+        # Only apply cost when moving sideways
+        cost *= jp.abs(cmd[1]) > 0.1
+        return cost
+
+    def _cost_joint_deviation_knee(self, qpos: jax.Array) -> jax.Array:
+        """Penalize knee joint deviation from default pose."""
+        return jp.sum(
+            jp.abs(
+                qpos[self._knee_indices] - self._default_pose[self._knee_indices]
+            )
+        )
