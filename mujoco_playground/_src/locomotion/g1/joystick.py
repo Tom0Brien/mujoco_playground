@@ -128,8 +128,9 @@ class Joystick(g1_base.G1Env):
 
   def _post_init(self) -> None:
     self._init_q = jp.array(self._mj_model.keyframe("knees_bent").qpos)
+    # Only get robot joints [7:36], not ball DOFs
     self._default_pose = jp.array(
-        self._mj_model.keyframe("knees_bent").qpos[7:]
+        self._mj_model.keyframe("knees_bent").qpos[7:36]
     )
 
     # Note: First joint is freejoint.
@@ -269,10 +270,10 @@ class Joystick(g1_base.G1Env):
     new_quat = math.quat_mul(qpos[3:7], quat)
     qpos = qpos.at[3:7].set(new_quat)
 
-    # qpos[7:]=*U(0.5, 1.5)
+    # qpos[7:36]=*U(0.5, 1.5) - only randomize robot joints, not ball
     rng, key = jax.random.split(rng)
-    qpos = qpos.at[7:].set(
-        qpos[7:] * jax.random.uniform(key, (29,), minval=0.5, maxval=1.5)
+    qpos = qpos.at[7:36].set(
+        qpos[7:36] * jax.random.uniform(key, (29,), minval=0.5, maxval=1.5)
     )
 
     # d(xyzrpy)=U(-0.5, 0.5)
@@ -285,7 +286,7 @@ class Joystick(g1_base.G1Env):
         self.mj_model,
         qpos=qpos,
         qvel=qvel,
-        ctrl=qpos[7:],
+        ctrl=qpos[7:36],  # Only robot joints, not ball
         impl=self.mjx_model.impl.value,
         nconmax=self._config.nconmax,
         njmax=self._config.njmax,
@@ -465,7 +466,8 @@ class Joystick(g1_base.G1Env):
         * self._config.noise_config.scales.gravity
     )
 
-    joint_angles = data.qpos[7:]
+    # Only robot joints, not ball DOFs
+    joint_angles = data.qpos[7:36]
     info["rng"], noise_rng = jax.random.split(info["rng"])
     noisy_joint_angles = (
         joint_angles
@@ -474,7 +476,8 @@ class Joystick(g1_base.G1Env):
         * self._config.noise_config.scales.joint_pos
     )
 
-    joint_vel = data.qvel[6:]
+    # Only robot joint velocities, not ball velocities
+    joint_vel = data.qvel[6:35]
     info["rng"], noise_rng = jax.random.split(info["rng"])
     noisy_joint_vel = (
         joint_vel
@@ -567,7 +570,7 @@ class Joystick(g1_base.G1Env):
         "action_rate": self._cost_action_rate(
             action, info["last_act"], info["last_last_act"]
         ),
-        "energy": self._cost_energy(data.qvel[6:], data.actuator_force),
+        "energy": self._cost_energy(data.qvel[6:35], data.actuator_force),
         "dof_acc": self._cost_dof_acc(data.qacc[6:]),
         # Feet related rewards.
         "feet_slip": self._cost_feet_slip(data, contact, info),
@@ -587,16 +590,16 @@ class Joystick(g1_base.G1Env):
         # Other rewards.
         "alive": self._reward_alive(),
         "termination": self._cost_termination(done),
-        "stand_still": self._cost_stand_still(info["command"], data.qpos[7:]),
+        "stand_still": self._cost_stand_still(info["command"], data.qpos[7:36]),
         "collision": self._cost_collision(data),
         "contact_force": self._cost_contact_force(data),
         # Pose related rewards.
         "joint_deviation_hip": self._cost_joint_deviation_hip(
-            data.qpos[7:], info["command"]
+            data.qpos[7:36], info["command"]
         ),
-        "joint_deviation_knee": self._cost_joint_deviation_knee(data.qpos[7:]),
-        "dof_pos_limits": self._cost_joint_pos_limits(data.qpos[7:]),
-        "pose": self._cost_pose(data.qpos[7:]),
+        "joint_deviation_knee": self._cost_joint_deviation_knee(data.qpos[7:36]),
+        "dof_pos_limits": self._cost_joint_pos_limits(data.qpos[7:36]),
+        "pose": self._cost_pose(data.qpos[7:36]),
     }
 
   def _cost_contact_force(self, data: mjx.Data) -> jax.Array:

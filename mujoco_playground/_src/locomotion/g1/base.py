@@ -30,6 +30,10 @@ def get_assets() -> Dict[str, bytes]:
   assets = {}
   mjx_env.update_assets(assets, consts.ROOT_PATH / "xmls", "*.xml")
   mjx_env.update_assets(assets, consts.ROOT_PATH / "xmls" / "assets")
+  # Load soccer ball textures with proper path prefixes
+  soccer_ball_path = consts.ROOT_PATH / "xmls" / "assets" / "soccer_ball"
+  for texture_file in soccer_ball_path.glob("*.png"):
+    assets[f"assets/soccer_ball/{texture_file.name}"] = texture_file.read_bytes()
   path = mjx_env.MENAGERIE_PATH / "unitree_g1"
   mjx_env.update_assets(assets, path, "*.xml")
   mjx_env.update_assets(assets, path / "assets")

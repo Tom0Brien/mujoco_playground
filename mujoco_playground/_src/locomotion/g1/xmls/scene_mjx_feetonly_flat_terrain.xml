@@ -17,10 +17,40 @@
     <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="1 1 1" rgb2="1 1 1"
       markrgb="0 0 0" width="300" height="300"/>
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0"/>
+    
+    <!-- Soccer ball texture (cubemap) -->
+    <texture name="soccer_ball" type="cube"
+      fileup="soccer_ball_up.png"
+      filedown="soccer_ball_down.png"
+      filefront="soccer_ball_front.png"
+      fileback="soccer_ball_back.png"
+      fileleft="soccer_ball_left.png"
+      fileright="soccer_ball_right.png"/>
+    <material name="soccer_ball" texture="soccer_ball"/>
   </asset>
 
   <worldbody>
     <geom name="floor" size="0 0 0.01" type="plane" material="groundplane"/>
+    
+    <body name="goal_marker" mocap="true" pos="2 0 0.05">
+      <!-- Transparent cylinder on ground to show goal -->
+      <geom name="goal_cylinder" type="cylinder" size="0.25 0.05" 
+            rgba="0 1 0 0.3" contype="0" conaffinity="0"/>
+      <!-- Arrow pointing forward to show orientation -->
+      <geom name="goal_arrow" type="capsule" size="0.02 0.3" 
+            pos="0.3 0 0" quat="0.707 0 0.707 0" rgba="1 0 0 0.5"
+            contype="0" conaffinity="0"/>
+    </body>
+    
+    <!-- FIFA regulation soccer ball (size 5) -->
+    <body name="soccer_ball" pos="2 0 0.117">
+      <freejoint name="ball_root"/>
+      <geom name="ball" type="sphere" size="0.117" mass="0.45"
+            condim="6" priority="1"
+            friction="0.7 0.05 0.04"
+            solref="0.02 0.4"
+            material="soccer_ball"/>
+    </body>
   </worldbody>
 
   <include file="sensor.xml"/>
