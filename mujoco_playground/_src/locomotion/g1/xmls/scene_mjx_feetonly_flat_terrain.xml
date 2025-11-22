@@ -39,9 +39,9 @@
       <geom name="goal_cylinder" type="cylinder" size="0.25 0.05" 
             rgba="0 1 0 0.3" contype="0" conaffinity="0"/>
       <!-- Arrow pointing forward to show orientation -->
-      <geom name="goal_arrow" type="capsule" size="0.02 0.3" 
+      <!-- <geom name="goal_arrow" type="capsule" size="0.02 0.3" 
             pos="0.3 0 0" quat="0.707 0 0.707 0" rgba="1 0 0 0.5"
-            contype="0" conaffinity="0"/>
+            contype="0" conaffinity="0"/> -->
     </body>
     
     <!-- Soccer ball with damping for realistic rolling behavior -->
