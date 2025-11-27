@@ -1,94 +1,126 @@
 <mujoco model="g1_29dof_rev_1_0">
-  <compiler angle="radian"/>
+  <compiler angle="radian" meshdir="assets" autolimits="true"/>
 
-  <option iterations="3" ls_iterations="5" timestep=".002" integrator="Euler">
+  <option timestep="0.02" iterations="1" ls_iterations="5">
     <flag eulerdamp="disable"/>
   </option>
 
+  <custom>
+    <numeric data="15" name="max_contact_points" />
+    <numeric data="15" name="max_geom_pairs" />
+  </custom>
+
   <default>
+    <geom condim="3" solimp="0.0 0.95 0.01"/>
     <default class="g1">
+      <site rgba="1 0 0 1" size="0.01" group="5"/>
       <geom condim="1" contype="0" conaffinity="0"/>
 
-      <joint frictionloss="0.1" damping="2"/>
-      <position inheritrange="1" kp="75"/>
+      <joint damping="0.0" armature="1.0" frictionloss="0.0"/>
+      <position inheritrange="1" kp="500" dampratio="1"/>
 
       <default class="hip">
         <default class="hip_pitch">
-          <joint axis="0 1 0" range="-2.5307 2.8798" actuatorfrcrange="-88 88" armature="0.01017752004"/>
+          <joint axis="0 1 0" range="-2.5307 2.8798" actuatorfrcrange="-88 88"/>
         </default>
         <default class="hip_roll">
-          <joint axis="1 0 0" range="-0.5236 2.9671" actuatorfrcrange="-139 139" armature="0.025101925"/>
+          <joint axis="1 0 0" range="-0.5236 2.9671" actuatorfrcrange="-139 139"/>
         </default>
         <default class="hip_yaw">
-          <joint axis="0 0 1" range="-2.7576 2.7576" actuatorfrcrange="-88 88" armature="0.01017752004"/>
+          <joint axis="0 0 1" range="-2.7576 2.7576" actuatorfrcrange="-88 88"/>
         </default>
       </default>
       <default class="knee">
-        <joint axis="0 1 0" range="-0.087267 2.8798" actuatorfrcrange="-139 139" armature="0.025101925"/>
+        <joint axis="0 1 0" range="-0.087267 2.8798" actuatorfrcrange="-139 139"/>
       </default>
       <default class="ankle">
         <default class="ankle_pitch">
           <position kp="20"/>
-          <joint axis="0 1 0" range="-0.87267 0.5236" actuatorfrcrange="-50 50" damping="1" armature="0.00721945"/>
+          <joint axis="0 1 0" range="-0.87267 0.5236" actuatorfrcrange="-50 50"/>
         </default>
         <default class="ankle_roll">
           <position kp="2"/>
-          <joint axis="1 0 0" range="-0.2618 0.2618" actuatorfrcrange="-50 50" damping=".2" armature="0.00721945"/>
+          <joint axis="1 0 0" range="-0.2618 0.2618" actuatorfrcrange="-50 50"/>
         </default>
       </default>
       <default class="waist_yaw">
-        <joint axis="0 0 1" range="-2.618 2.618" actuatorfrcrange="-88 88" armature="0.01017752004"/>
+        <joint axis="0 0 1" range="-2.618 2.618" actuatorfrcrange="-88 88"/>
       </default>
       <default class="waist_pitch">
-        <joint axis="0 1 0" range="-0.52 0.52" actuatorfrcrange="-50 50" armature="0.00721945"/>
+        <joint axis="0 1 0" range="-0.52 0.52" actuatorfrcrange="-50 50"/>
       </default>
       <default class="waist_roll">
-        <joint axis="1 0 0" range="-0.52 0.52" actuatorfrcrange="-50 50" armature="0.00721945"/>
+        <joint axis="1 0 0" range="-0.52 0.52" actuatorfrcrange="-50 50"/>
       </default>
       <default class="shoulder">
         <default class="shoulder_pitch">
-          <joint axis="0 1 0" range="-3.0892 2.6704" actuatorfrcrange="-25 25" armature="0.003609725"/>
+          <joint axis="0 1 0" range="-3.0892 2.6704" actuatorfrcrange="-25 25"/>
         </default>
         <default class="shoulder_roll">
-          <joint axis="1 0 0" actuatorfrcrange="-25 25" armature="0.003609725" />
+          <joint axis="1 0 0" actuatorfrcrange="-25 25" />
         </default>
         <default class="shoulder_yaw">
-          <joint axis="0 0 1" range="-2.618 2.618" actuatorfrcrange="-25 25" armature="0.003609725"/>
+          <joint axis="0 0 1" range="-2.618 2.618" actuatorfrcrange="-25 25"/>
         </default>
       </default>
       <default class="elbow">
-        <joint axis="0 1 0" range="-1.0472 2.0944" actuatorfrcrange="-25 25" armature="0.003609725"/>
+        <joint axis="0 1 0" range="-1.0472 2.0944" actuatorfrcrange="-25 25"/>
       </default>
       <default class="wrist">
         <position kp="2"/>
-        <joint damping=".2"/>
         <default class="wrist_roll">
-          <joint axis="1 0 0" range="-1.97222 1.97222" actuatorfrcrange="-25 25" armature="0.003609725"/>
+          <joint axis="1 0 0" range="-1.97222 1.97222" actuatorfrcrange="-25 25"/>
         </default>
         <default class="wrist_pitch">
-          <joint axis="0 1 0" range="-1.61443 1.61443" actuatorfrcrange="-5 5" armature="0.00425"/>
+          <joint axis="0 1 0" range="-1.61443 1.61443" actuatorfrcrange="-5 5"/>
         </default>
         <default class="wrist_yaw">
-          <joint axis="0 0 1" range="-1.61443 1.61443" actuatorfrcrange="-5 5" armature="0.00425"/>
+          <joint axis="0 0 1" range="-1.61443 1.61443" actuatorfrcrange="-5 5"/>
         </default>
       </default>
 
       <default class="visual">
-        <geom group="2" type="mesh" density="0" material="silver"/>
+        <geom group="2" type="mesh" contype="0" conaffinity="0" density="0" material="metal"/>
       </default>
       <default class="collision">
-        <geom group="3" rgba=".2 .6 .2 .3"/>
+        <geom group="3" type="capsule"/>
         <default class="foot">
-          <geom size="0.085 0.03 0.005"/>
+          <geom type="sphere" size="0.005" priority="1" friction="0.6" condim="3"/>
+        </default>
+        <default class="shin_collision">
+          <geom pos="0.0 0.0 -0.18" size="0.03 0.1"/>
+        </default>
+        <default class="knee_collision">
+          <geom pos="-0.08 0.0 -0.18" type="sphere" size="0.05"/>
+        </default>
+        <default class="thigh_collision">
+          <geom pos="-0.02 0.0 0.0" size="0.05 0.12"/>
+        </default>
+        <default class="pelvis_collision">
+          <geom pos="0.0 0.0 -0.06" size="0.06 0.04"/>
+        </default>
+        <default class="torso_collision">
+          <geom pos="0.0 0.0 0.0" size="0.05 0.1"/>
+        </default>
+        <default class="head_collision">
+          <geom pos="0.01 0.0 0.41" type="sphere" size="0.07"/>
+        </default>
+        <default class="shoulder_collision">
+          <geom pos="-0.0 0.0 -0.09" size="0.03 0.09" />
+        </default>
+        <default class="forearm_collision">
+          <geom quat="0.707107 0 0.707107 0 " size="0.03 0.04" />
+        </default>
+        <default class="hand_collision">
+          <geom pos="0.1 0.0 0.0" quat="0.707107 0 0.707107 0 " size="0.03 0.04" />
         </default>
       </default>
-      <site group="5" rgba="1 0 0 1"/>
     </default>
   </default>
 
   <asset>
-    <material name="silver" rgba="0.7 0.7 0.7 1"/>
     <material name="black" rgba="0.2 0.2 0.2 1"/>
+    <material name="metal" rgba="0.7 0.7 0.7 1"/>
 
     <mesh name="pelvis" file="../../../../../mujoco_menagerie/unitree_g1/assets/pelvis.STL"/>
     <mesh name="pelvis_contour_link" file="../../../../../mujoco_menagerie/unitree_g1/assets/pelvis_contour_link.STL"/>

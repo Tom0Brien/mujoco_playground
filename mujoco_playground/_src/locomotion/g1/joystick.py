@@ -134,7 +134,8 @@ class Joystick(g1_base.G1Env):
     )
 
     # Note: First joint is freejoint.
-    self._lowers, self._uppers = self.mj_model.jnt_range[1:].T
+    # Only get robot joints (29 DOFs), not ball or other joints
+    self._lowers, self._uppers = self.mj_model.jnt_range[1:30].T
     c = (self._lowers + self._uppers) / 2
     r = self._uppers - self._lowers
     self._soft_lowers = c - 0.5 * r * self._config.soft_joint_pos_limit_factor
