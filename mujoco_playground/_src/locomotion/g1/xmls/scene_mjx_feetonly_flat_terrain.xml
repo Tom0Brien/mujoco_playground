@@ -21,14 +21,14 @@
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0"/>
     
     <!-- Soccer ball texture (cubemap) -->
-    <texture name="soccer_ball" type="cube"
+    <!-- <texture name="soccer_ball" type="cube"
       fileup="soccer_ball_up.png"
       filedown="soccer_ball_down.png"
       filefront="soccer_ball_front.png"
       fileback="soccer_ball_back.png"
       fileleft="soccer_ball_left.png"
       fileright="soccer_ball_right.png"/>
-    <material name="soccer_ball" texture="soccer_ball"/>
+    <material name="soccer_ball" texture="soccer_ball"/> -->
   </asset>
 
   <worldbody>
@@ -44,13 +44,46 @@
             contype="0" conaffinity="0"/> -->
     </body>
     
+    <!-- Soccer goal posts (red team) -->
+    <body name="goal_red" pos="-4.5 0 0">
+      <!-- Goal box (transparent red volume indicating goal zone) -->
+      <geom name="goal_box_red" type="box" size="0.3 1.2 0.9" 
+            pos="-0.3 0 0.9" rgba="1 0 0 0.2" contype="0" conaffinity="0"/>
+      <!-- Left post -->
+      <geom name="goal_post_red_left" type="cylinder" size="0.06 0.9" 
+            pos="0 1.2 0.9" rgba="1 1 1 1" contype="1" conaffinity="1"/>
+      <!-- Right post -->
+      <geom name="goal_post_red_right" type="cylinder" size="0.06 0.9" 
+            pos="0 -1.2 0.9" rgba="1 1 1 1" contype="1" conaffinity="1"/>
+      <!-- Crossbar -->
+      <geom name="goal_crossbar_red" type="capsule" size="0.06 1.2" 
+            pos="0 0 1.8" quat="0.707 0.707 0 0" rgba="1 1 1 1" contype="1" conaffinity="1"/>
+    </body>
+    
+    <!-- Soccer goal posts (green team / opponent) -->
+    <body name="goal_green" pos="4.5 0 0">
+      <!-- Goal box (transparent green volume indicating goal zone) -->
+      <geom name="goal_box_green" type="box" size="0.3 1.2 0.9" 
+            pos="0.3 0 0.9" rgba="0 1 0 0.2" contype="0" conaffinity="0"/>
+      <!-- Left post -->
+      <geom name="goal_post_green_left" type="cylinder" size="0.06 0.9" 
+            pos="0 1.2 0.9" rgba="1 1 1 1" contype="1" conaffinity="1"/>
+      <!-- Right post -->
+      <geom name="goal_post_green_right" type="cylinder" size="0.06 0.9" 
+            pos="0 -1.2 0.9" rgba="1 1 1 1" contype="1" conaffinity="1"/>
+      <!-- Crossbar -->
+      <geom name="goal_crossbar_green" type="capsule" size="0.06 1.2" 
+            pos="0 0 1.8" quat="0.707 0.707 0 0" rgba="1 1 1 1" contype="1" conaffinity="1"/>
+    </body>
+    
     <!-- Soccer ball with damping for realistic rolling behavior -->
     <body name="soccer_ball" pos="2 0 0.117">
       <freejoint name="ball_root"/>
       <geom name="ball" type="sphere" size="0.117"
             condim="6" priority="1"
             solref="0.01 0.8"  
-            material="soccer_ball"/>
+            />
+            <!-- material="soccer_ball" -->
       <!-- Inertial with explicit inertia for rolling dynamics -->
       <inertial pos="0 0 0"  mass="0.45"
                 diaginertia="0.011 0.011 0.011"/>
@@ -60,6 +93,11 @@
   <include file="sensor.xml"/>
 
   <contact>
+    <!-- Self-collision: prevent legs from passing through each other -->
+    <pair name="left_shin_right_shin" geom1="left_shin" geom2="right_shin" condim="3" friction="0.6 0.6"/>
+    <pair name="left_foot_right_shin" geom1="left_foot" geom2="right_shin" condim="3" friction="0.6 0.6"/>
+    <pair name="right_foot_left_shin" geom1="right_foot" geom2="left_shin" condim="3" friction="0.6 0.6"/>
+    
     <!-- Ball contacts with feet (primary kicking contact) -->
     <pair name="ball_left_foot" geom1="ball" geom2="left_foot" condim="6" friction="1.2 0.1 0.5"/>
     <pair name="ball_right_foot" geom1="ball" geom2="right_foot" condim="6" friction="1.2 0.1 0.5"/>
@@ -75,6 +113,10 @@
     <!-- Ball contacts with hands (for goalkeeper-like interactions) -->
     <pair name="ball_left_hand" geom1="ball" geom2="left_hand_collision" condim="6" friction="1.2 0.1 0.5"/>
     <pair name="ball_right_hand" geom1="ball" geom2="right_hand_collision" condim="6" friction="1.2 0.1 0.5"/>
+    
+    <!-- Ball contacts with upper arms (for blocking) -->
+    <pair name="ball_left_upper_arm" geom1="ball" geom2="left_upper_arm" condim="6" friction="1.2 0.1 0.5"/>
+    <pair name="ball_right_upper_arm" geom1="ball" geom2="right_upper_arm" condim="6" friction="1.2 0.1 0.5"/>
     
     <!-- Ball contacts with floor -->
     <pair name="ball_floor" geom1="ball" geom2="floor" condim="6" friction="1 1 0.005 0.02 0.02"/>
